@@ -84,7 +84,7 @@ data class TpSlSpec(val mode: TpSlMode, val value: Double)
 
 data class Wallet(val cashBalance: Double)
 
-enum class IndicatorType { RSI, MACD, MA_CONFLUENCE, MOMENTUM }
+enum class IndicatorType { SMART_CONFLUENCE, RSI, MACD, MA_CONFLUENCE, MOMENTUM, STOCHASTIC, BOLLINGER, VOLUME_TREND }
 enum class Bias { BULLISH, BEARISH, NEUTRAL }
 
 data class IndicatorReadout(

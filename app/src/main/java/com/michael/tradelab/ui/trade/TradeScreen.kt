@@ -490,6 +490,11 @@ fun TradeScreen(symbol: String, viewModel: TradeViewModel = hiltViewModel()) {
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            Text(
+                                "Tick ${last?.let { formatPrice(it) } ?: "waiting for live price"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                             val riskLine = listOfNotNull(
                                 pos.tpPrice?.let { "TP ${formatPrice(it)}" },
                                 pos.slPrice?.let { "SL ${formatPrice(it)}" },

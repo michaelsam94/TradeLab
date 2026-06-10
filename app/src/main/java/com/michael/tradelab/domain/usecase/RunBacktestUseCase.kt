@@ -33,6 +33,9 @@ class RunBacktestUseCase @Inject constructor(
     companion object {
         fun backtest(candles: List<Candle>, type: IndicatorType): BacktestResult {
             val closes = candles.map { it.close }
+            val highs = candles.map { it.high }
+            val lows = candles.map { it.low }
+            val volumes = candles.map { it.volume }
             val signals: List<Int> = when (type) { // 1 = long signal, -1 = exit/short signal, 0 = hold
                 IndicatorType.RSI -> IndicatorMath.rsi(closes).map { if (it.isNaN()) 0 else if (it < 30) 1 else if (it > 70) -1 else 0 }
                 IndicatorType.MACD -> IndicatorMath.macd(closes).histogram.map { if (it.isNaN()) 0 else if (it > 0) 1 else -1 }
@@ -41,6 +44,17 @@ class RunBacktestUseCase @Inject constructor(
                     closes.indices.map { i -> if (e20[i].isNaN() || e50[i].isNaN()) 0 else if (e20[i] > e50[i]) 1 else -1 }
                 }
                 IndicatorType.MOMENTUM -> IndicatorMath.momentum(closes).map { if (it.isNaN()) 0 else if (it > 1) 1 else if (it < -1) -1 else 0 }
+                IndicatorType.STOCHASTIC -> IndicatorMath.stochastic(highs, lows, closes).k
+                    .map { if (it.isNaN()) 0 else if (it < 20) 1 else if (it > 80) -1 else 0 }
+                IndicatorType.BOLLINGER -> IndicatorMath.bollinger(closes).percentB
+                    .map { if (it.isNaN()) 0 else if (it < 0.05) 1 else if (it > 0.95) -1 else 0 }
+                IndicatorType.VOLUME_TREND -> {
+                    val obv = IndicatorMath.obv(closes, volumes)
+                    val obvEma = IndicatorMath.ema(obv, 20)
+                    obv.indices.map { i -> if (obvEma[i].isNaN()) 0 else if (obv[i] > obvEma[i]) 1 else -1 }
+                }
+                IndicatorType.SMART_CONFLUENCE -> IndicatorMath.confluenceScores(highs, lows, closes, volumes).scores
+                    .map { if (it.isNaN()) 0 else if (it > 0.15) 1 else if (it < -0.15) -1 else 0 }
             }
 
             var equity = 1.0

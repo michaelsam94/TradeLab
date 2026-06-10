@@ -33,6 +33,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.michael.tradelab.R
 import com.michael.tradelab.data.local.IndicatorDao
+import com.michael.tradelab.data.repo.MarketRepository
 import com.michael.tradelab.domain.model.Bias
 import com.michael.tradelab.domain.model.IndicatorReadout
 import com.michael.tradelab.domain.model.IndicatorType
@@ -45,11 +46,14 @@ import com.michael.tradelab.ui.components.EmptyState
 import com.michael.tradelab.ui.components.SkeletonRow
 import com.michael.tradelab.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -61,11 +65,13 @@ data class IndicatorFeedUi(
     val backtestRunning: Boolean = false,
 )
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 @HiltViewModel
 class IndicatorFeedViewModel @Inject constructor(
     indicatorDao: IndicatorDao,
     private val compute: ComputeIndicatorsUseCase,
     private val runBacktest: RunBacktestUseCase,
+    private val marketRepository: MarketRepository,
 ) : ViewModel() {
 
     val filter = MutableStateFlow<IndicatorType?>(null)
@@ -94,14 +100,35 @@ class IndicatorFeedViewModel @Inject constructor(
 
     init {
         refresh()
+        // Periodic kline refresh keeps the candle series itself current.
+        viewModelScope.launch {
+            while (isActive) {
+                delay(CANDLE_REFRESH_MS)
+                computeAll(refreshCandles = true)
+            }
+        }
+        // Live ticks overlay the streamed price onto the open candle so readouts
+        // track the tape between candle closes.
+        viewModelScope.launch {
+            marketRepository.liveTicks.sample(LIVE_RECOMPUTE_MS).collect { ticks ->
+                for (symbol in SYMBOLS) {
+                    val price = ticks[symbol]?.last ?: continue
+                    runCatching { compute(symbol, INTERVAL, livePrice = price) }
+                }
+            }
+        }
     }
 
     fun refresh() {
         viewModelScope.launch {
-            for (symbol in listOf("BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT")) {
-                runCatching { compute(symbol, "4h") }
-            }
+            computeAll(refreshCandles = true)
             loading.value = false
+        }
+    }
+
+    private suspend fun computeAll(refreshCandles: Boolean) {
+        for (symbol in SYMBOLS) {
+            runCatching { compute(symbol, INTERVAL, refreshCandles = refreshCandles) }
         }
     }
 
@@ -114,6 +141,13 @@ class IndicatorFeedViewModel @Inject constructor(
     }
 
     fun clearBacktest() { backtest.value = null }
+
+    companion object {
+        private val SYMBOLS = listOf("BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT")
+        private const val INTERVAL = "4h"
+        private const val CANDLE_REFRESH_MS = 5 * 60_000L
+        private const val LIVE_RECOMPUTE_MS = 10_000L
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -163,7 +197,7 @@ fun IndicatorFeedScreen(
                     )
                 }
             } else {
-                items(items = ui.readouts, key = { it.id }) { r ->
+                items(items = ui.readouts, key = { "${it.symbol}:${it.type}" }) { r ->
                     Card(
                         onClick = { onOpenPair(r.symbol) },
                         shape = MaterialTheme.shapes.medium,
@@ -250,4 +284,8 @@ private fun methodologyText(type: IndicatorType): String = when (type) {
     IndicatorType.MACD -> "MACD(12,26,9) subtracts the 26-period EMA from the 12-period EMA and compares the result with its own 9-period EMA (signal line). Histogram sign changes mark crossovers."
     IndicatorType.MA_CONFLUENCE -> "Compares last price against the 20- and 50-period EMAs and the EMAs against each other. 3/3 bullish conditions = bullish bias; 0/3 = bearish bias."
     IndicatorType.MOMENTUM -> "10-bar rate of change: percentage difference between the latest close and the close 10 bars earlier."
+    IndicatorType.STOCHASTIC -> "Stochastic(14,3) locates the latest close within the 14-bar high–low range. %K under 20 is conventionally described as oversold; over 80 as overbought. %D is a 3-bar average of %K."
+    IndicatorType.BOLLINGER -> "Bollinger Bands(20,2): a 20-period average ± 2 standard deviations. %B shows where price sits in the bands (0 = lower, 1 = upper). Narrow bandwidth flags a volatility squeeze."
+    IndicatorType.VOLUME_TREND -> "On-balance volume adds volume on up-closes and subtracts it on down-closes, then is compared with its 20-period EMA. Agreement with the price trend confirms the move; disagreement flags divergence."
+    IndicatorType.SMART_CONFLUENCE -> "Weighted blend of all component indicators into one score from -1 to +1. ADX(14) sets the regime: trending markets (ADX ≥ 25) weight trend-followers (MACD, EMA stack, momentum) up; ranging markets (ADX < 20) weight mean-reverters (RSI, stochastic, %B) up. Volume flow always counts once."
 }
