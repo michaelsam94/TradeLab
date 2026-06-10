@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TradeLab" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#0C0F11</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.TradeLab.Main</item>
+    </style>
+    <style name="Theme.TradeLab.Main" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0C0F11</item>
+    </style>
+</resources>

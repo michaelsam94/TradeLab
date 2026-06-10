@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TradeLab</string>
+
+    <!-- Compliance copy — vocabulary audited; see BannedVocabularyTest -->
+    <string name="disclaimer_full">This application is a trading simulator for educational and entertainment purposes only. The AI-generated data consists of technical indicators derived from historical market data and does not constitute financial or investment advice. No real trading is executed on live exchanges through this application. Virtual balances have no monetary value and cannot be withdrawn, exchanged, or converted to real currency or cryptocurrency.</string>
+    <string name="disclaimer_banner">Educational technical analysis. Not financial advice. No real trades are executed.</string>
+    <string name="indicator_footer">Educational technical analysis. Not financial advice.</string>
+    <string name="confidence_label">historical pattern strength — not a prediction</string>
+    <string name="simulated_label">Simulated results</string>
+    <string name="i_understand">I understand</string>
+    <string name="scroll_to_continue">Scroll to the end to continue</string>
+
+    <string name="nav_markets">Markets</string>
+    <string name="nav_trade">Trade</string>
+    <string name="nav_indicators">Indicators</string>
+    <string name="nav_history">History</string>
+    <string name="nav_learn">Learn</string>
+
+    <string name="place_virtual_order">Place Virtual Order</string>
+    <string name="reset_portfolio">Reset Portfolio</string>
+
+    <string name="alert_rationale_title">Get alerted when your levels hit?</string>
+    <string name="alert_rationale_body">TradeLab sends a notification when a pair crosses a price or indicator level you set, plus an optional daily indicator digest. Alerts are educational and informational only — they are never trading instructions, and nothing is ever traded on your behalf. You can customise or mute every alert type in Settings.</string>
+    <string name="alert_denied_fallback">Alerts need notification access to reach you.</string>
+    <string name="open_settings">Open Settings</string>
+
+    <string name="paywall_note">Purchases unlock app features and virtual funds only. Virtual balances have no real-world value and cannot be withdrawn or converted.</string>
+</resources>
